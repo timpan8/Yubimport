@@ -27,14 +27,14 @@
     background: var(--card); border: 1px solid var(--border); border-radius: 10px;
     padding: 16px; margin-bottom: 12px;
   }
-  .row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .row { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 12px; align-items: end; }
   label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
-  input {
+  input, select {
     width: 100%; padding: 10px 12px; font: inherit; color: var(--text);
     background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
     font-variant-numeric: tabular-nums;
   }
-  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   button {
     font: inherit; padding: 10px 16px; border-radius: 8px; cursor: pointer;
     border: 1px solid var(--border); background: var(--card); color: var(--text);
@@ -51,7 +51,7 @@
   footer { margin-top: 32px; font-size: .85rem; color: var(--muted); }
   @media (max-width: 560px) {
     .row { grid-template-columns: 1fr 1fr; }
-    .remove { grid-column: 1 / -1; }
+    .remove { grid-column: 2; }
   }
 </style>
 </head>
@@ -85,6 +85,14 @@
         <label>Slut</label>
         <input class="end" inputmode="numeric" autocomplete="off" placeholder="10 200 000">
       </div>
+      <div>
+        <label>Typ</label>
+        <select class="type">
+          <option value="">Ingen</option>
+          <option value="USB-A">USB-A</option>
+          <option value="USB-C">USB-C</option>
+        </select>
+      </div>
       <button type="button" class="remove" title="Ta bort serie" aria-label="Ta bort serie">✕</button>
     </div>
     <div class="info"></div>
@@ -117,7 +125,8 @@
     }
     // Behåll inledande nollor om startnumret har det, t.ex. 000100.
     const width = startRaw.startsWith('0') ? startRaw.length : 0;
-    return { startRaw, endRaw, start, end, count, width };
+    const type = card.querySelector('.type').value;
+    return { startRaw, endRaw, start, end, count, width, type };
   }
 
   const fmt = (n) => n.toLocaleString('sv-SE');
@@ -146,7 +155,7 @@
     return `${d.getFullYear()}-${mm}-${dd}`;
   }
 
-  const fileName = (r) => `Nummer-${r.startRaw}-${r.endRaw}-${today()}.csv`;
+  const fileName = (r) => `Nummer-${r.startRaw}-${r.endRaw}-${today()}${r.type ? '-' + r.type : ''}.csv`;
 
   function buildCsv(r) {
     const parts = ['Nummer,Info\r\n'];
@@ -173,11 +182,15 @@
 
   function addRange() {
     const node = template.content.firstElementChild.cloneNode(true);
-    node.querySelectorAll('input').forEach((input) =>
+    node.querySelectorAll('input, select').forEach((input) =>
       input.addEventListener('input', () => updateInfo(node)));
     node.querySelector('.remove').addEventListener('click', () => {
       if (rangesEl.children.length > 1) node.remove();
-      else node.querySelectorAll('input').forEach((i) => { i.value = ''; updateInfo(node); });
+      else {
+        node.querySelectorAll('input').forEach((i) => { i.value = ''; });
+        node.querySelector('.type').value = '';
+        updateInfo(node);
+      }
     });
     rangesEl.append(node);
     node.querySelector('.start').focus();
